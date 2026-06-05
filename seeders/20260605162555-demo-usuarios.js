@@ -1,5 +1,5 @@
 'use strict';
-// Para fins de teste inicial, as senhas abaixo correspondem a 'Senha123' criptografada
+// Senha padrão criptografada: 'Senha123'
 const SENHA_MOCK = '$2a$10$7R9vM17bWbCExB4A7v2eO.Yk6g0M3Vf96NnZ6yN2vT8h7Z8E5pG1W';
 
 /** @type {import('sequelize-cli').Migration} */
@@ -7,8 +7,8 @@ module.exports = {
   async up (queryInterface, Sequelize) {
     await queryInterface.bulkInsert('usuarios', [
       {
-        nome: 'Guilherme Admin',
-        email: 'admin@financeapp.com',
+        nome: 'Laura Vasconcelos', 
+        email: 'laura@financeapp.com', 
         senha_hash: SENHA_MOCK,
         cargo: 'admin',
         verificado: true,
