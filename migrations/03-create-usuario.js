@@ -27,6 +27,16 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: false
       },
+      cargo: {
+        type: Sequelize.STRING(20),
+        allowNull: false,
+        defaultValue: 'usuario'
+      },
+      verificado: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
       data_criacao: {
         type: Sequelize.DATE,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
