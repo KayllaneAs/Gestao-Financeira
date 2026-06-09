@@ -131,19 +131,48 @@ class UsuarioService {
   }
 
   async esqueciSenha(email) {
-    const usuario = await Usuario.findOne({ where: { Email: email } })
+    console.log('EMAIL RECEBIDO:', email)
+
+    const usuario = await Usuario.findOne({
+      where: {
+        email: email.toLowerCase().trim()
+      }
+    })
+
+    console.log('USUARIO:', usuario?.toJSON())
 
     if (!usuario) {
-      return { mensagem: 'Se o e-mail estiver cadastrado, um código foi enviado.' }
+      console.log('USUÁRIO NÃO ENCONTRADO')
+
+      return {
+        mensagem:
+          'Se o e-mail estiver cadastrado, um código foi enviado.'
+      }
     }
 
     const codigo = gerarCodigo6Digitos()
     const expiracao = new Date(Date.now() + 15 * 60 * 1000)
 
-    await usuario.update({ Codigo_Verificacao: codigo, Codigo_Expiracao: expiracao })
-    await emailService.enviarCodigoResetSenha(usuario.Email, usuario.Nome, codigo)
+    console.log('CODIGO GERADO:', codigo)
 
-    return { mensagem: 'Código enviado para o seu e-mail.' }
+    await usuario.update({
+      Codigo_Verificacao: codigo,
+      Codigo_Expiracao: expiracao
+    })
+
+    console.log('CHAMANDO EMAIL SERVICE')
+
+    await emailService.enviarCodigoResetSenha(
+      usuario.get('Email'),
+      usuario.get('Nome'),
+      codigo
+    )
+
+    console.log('EMAIL ENVIADO COM SUCESSO')
+
+    return {
+      mensagem: 'Código enviado para o seu e-mail.'
+    }
   }
 
   async resetarSenha(email, codigo, novaSenha) {
