@@ -8,12 +8,6 @@ module.exports = {
         primaryKey: true,
         allowNull: false
       },
-      id_familia: {
-        type: Sequelize.UUID,
-        allowNull: false,
-        references: { model: 'familia', key: 'id_familia' },
-        onDelete: 'CASCADE'
-      },
       nome: {
         type: Sequelize.STRING(100),
         allowNull: false
@@ -32,7 +26,15 @@ module.exports = {
         allowNull: false,
         defaultValue: 'usuario'
       },
-      verificado: {
+      codigo_verificacao: {
+        type: Sequelize.STRING(6),
+        allowNull: true
+      },
+      codigo_expiracao: {
+        type: Sequelize.DATE,
+        allowNull: true
+      },
+      email_verificado: {
         type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: false
