@@ -7,7 +7,7 @@ import { cn } from '@/utils/cn'
 import { Button } from './Button'
 import {
   LayoutDashboard, Receipt, TrendingUp, CreditCard, CalendarClock,
-  Target, FileBarChart, LogOut, Wallet, Menu, ShieldCheck, FileUp, Users,
+  Target, FileBarChart, LogOut, Wallet, Menu, ShieldCheck, FileUp,
   ChevronLeft, X,
 } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
@@ -17,7 +17,6 @@ const navItems = [
   { to: '/despesas', icon: Receipt, label: 'Despesas' },
   { to: '/rendas', icon: TrendingUp, label: 'Rendas' },
   { to: '/contas', icon: CreditCard, label: 'Contas' },
-  { to: '/membros-familia', icon: Users, label: 'Família' },
   { to: '/parcelamentos', icon: CalendarClock, label: 'Parcelas' },
   { to: '/reservas', icon: Target, label: 'Reservas' },
   { to: '/relatorios', icon: FileBarChart, label: 'Relatórios' },

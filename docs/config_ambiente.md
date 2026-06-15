@@ -61,14 +61,12 @@ npx sequelize-cli db:migrate
 A saída esperada no terminal é:
 
 ```
-== 02-create-familia: migrated (0.Xs)
-== 03-create-usuario: migrated (0.Xs)
-== 04-create-membro-familia: migrated (0.Xs)
-== 05-create-conta-cartao: migrated (0.Xs)
-== 06-create-renda: migrated (0.Xs)
-== 07-create-parcelamento-agrupador: migrated (0.Xs)
-== 08-create-despesa: migrated (0.Xs)
-== 09-create-reserva: migrated (0.Xs)
+== 02-create-usuario: migrated (0.Xs)
+== 03-create-conta-cartao: migrated (0.Xs)
+== 04-create-renda: migrated (0.Xs)
+== 05-create-parcelamento-agrupador: migrated (0.Xs)
+== 06-create-despesa: migrated (0.Xs)
+== 07-create-reserva: migrated (0.Xs)
 ```
 
 Para confirmar que tudo foi criado corretamente, rode no SQL Editor do Neon:

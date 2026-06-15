@@ -40,51 +40,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen p-4 flex items-center justify-center">
-      <Card variant="glass" padding="none" className="w-full max-w-[980px] overflow-hidden scale-in">
-        <div className="grid md:grid-cols-[1.05fr_1fr]">
-          {/* Left Panel - Features */}
-          <section className={cn(
-            "hidden md:block p-10 lg:p-12",
-            "bg-gradient-to-br from-[color-mix(in_srgb,var(--color-primary)_17%,transparent)] to-[color-mix(in_srgb,var(--color-accent)_12%,transparent)]",
-            "border-r border-[var(--color-border)]"
-          )}>
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-[var(--color-primary)] mb-6">
-              <Sparkles size={14} />
-              Plataforma Financeira Inteligente
-            </div>
-            
-            <h1 className="text-2xl lg:text-3xl font-extrabold leading-tight mb-4 text-[var(--color-text)]">
-              Controle total das suas finanças com uma interface de alto nível.
-            </h1>
-            
-            <p className="text-[var(--color-text-secondary)] leading-relaxed mb-8">
-              Decisões financeiras mais rápidas com dashboards claros, importação de extratos e relatórios prontos para ação.
-            </p>
-
-            <div className="space-y-4">
-              {[
-                'Visão mensal completa em segundos',
-                'Gestão de despesas, rendas e reservas',
-                'Dados protegidos e experiência premium',
-              ].map((item, i) => (
-                <div 
-                  key={item} 
-                  className={cn(
-                    "flex items-center gap-3 text-sm text-[var(--color-text-secondary)]",
-                    "slide-up animate-ready",
-                    `stagger-${i + 1}`
-                  )}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-[var(--color-primary)]/15 flex items-center justify-center flex-shrink-0">
-                    <ShieldCheck size={14} className="text-[var(--color-primary)]" />
-                  </div>
-                  {item}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Right Panel - Login Form */}
+      <div className="glass-card" style={{ width: '100%', maxWidth: 480, padding: 0, overflow: 'hidden' }}>
+        <div>
           <section className="p-8 lg:p-10">
             <div className="text-center mb-8">
               <div className={cn(
@@ -185,7 +142,7 @@ export default function Login() {
             </div>
           </section>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
