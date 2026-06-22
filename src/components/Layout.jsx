@@ -223,7 +223,7 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0 flex flex-col">
+      <main className="flex-1 min-w-0 flex flex-col relative">
         {/* Header */}
         <header className={cn(
           'h-16 border-b border-[var(--color-border)]',
