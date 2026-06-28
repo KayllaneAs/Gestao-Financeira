@@ -20,6 +20,11 @@ class RendaController {
     const renda = await rendaService.atualizar(id, body)
     return { status: 200, data: renda }
   }
+
+    async deletar(id, deletarTodas = false) {
+    const resultado = await rendaService.deletar(id, deletarTodas)
+    return { status: 200, data: resultado }
+  }
 }
 
 export default new RendaController()
