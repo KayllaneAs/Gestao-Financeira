@@ -5,7 +5,7 @@ export async function GET(request, { params }) {
   return handleRequest(request, async () => {
     const { id } = await params
     return rendaController.buscarPorId(id)
-  }, { auth: true })
+  })
 }
 
 export async function PUT(request, { params }) {
@@ -13,5 +13,14 @@ export async function PUT(request, { params }) {
     const { id } = await params
     const body = await req.json()
     return rendaController.atualizar(id, body)
-  }, { auth: true })
+  })
+}
+
+export async function DELETE(request, { params }) {
+  return handleRequest(request, async () => {
+    const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const deletarTodas = searchParams.get('deletarTodas') === 'true'
+    return rendaController.deletar(id, deletarTodas)
+  })
 }

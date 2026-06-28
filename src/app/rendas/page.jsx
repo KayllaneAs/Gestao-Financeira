@@ -9,7 +9,7 @@ import MonthSelector from '@/components/MonthSelector'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import EmptyState from '@/components/EmptyState'
 import { formatCurrency, formatDate } from '@/utils/helpers'
-import { Plus, Pencil, TrendingUp, Search, Repeat } from 'lucide-react'
+import { Plus, Pencil, Trash2, TrendingUp, Search, Repeat } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const emptyForm = {
@@ -33,7 +33,7 @@ export default function Rendas() {
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [error, setError] = useState('')
-  const [confirmModal, setConfirmModal] = useState(null) // { tipo: 'editar', renda, payload }
+  const [confirmModal, setConfirmModal] = useState(null) // { tipo: 'deletar'|'editar', renda, payload? }
 
   useEffect(() => { if (!user) router.push('/login') }, [user, router])
 
@@ -67,6 +67,7 @@ export default function Rendas() {
 
   const handleSave = async (e) => {
     e.preventDefault()
+    // Se editando renda fixa, pede confirmação sobre escopo
     if (editing && editing.Fixa) {
       setModal(false)
       setConfirmModal({ tipo: 'editar', renda: editing, payload: form })
@@ -89,6 +90,23 @@ export default function Rendas() {
       setModal(true)
     }
     setSaving(false)
+  }
+
+  const handleDelete = (r) => {
+    if (r.Fixa) {
+      setConfirmModal({ tipo: 'deletar', renda: r })
+    } else {
+      if (!confirm(`Deletar "${r.Descricao_Renda}"?`)) return
+      doDelete(r.Id_Renda, false)
+    }
+  }
+
+  const doDelete = async (id, deletarTodas) => {
+    try {
+      await api.delete(`/rendas/${id}?deletarTodas=${deletarTodas}`)
+      setConfirmModal(null); fetchData()
+      window.location.reload() // Adicionado para recarregar a página
+    } catch { }
   }
 
   const filtered = rendas.filter(r => !searchTerm || r.Descricao_Renda?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -158,6 +176,8 @@ export default function Rendas() {
                     <td>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                         <button className="btn-icon" onClick={() => openEdit(r)} title="Editar"><Pencil size={15} /></button>
+                        <button className="btn-icon" onClick={() => handleDelete(r)} title="Deletar"
+                          style={{ color: 'var(--color-danger)' }}><Trash2 size={15} /></button>
                       </div>
                     </td>
                   </tr>
@@ -200,6 +220,7 @@ export default function Rendas() {
                 </div>
               </div>
 
+              {/* Toggle Renda Fixa (somente na criação) */}
               {!editing && (
                 <div style={{ marginBottom: 14 }}>
                   <label style={{
@@ -233,6 +254,7 @@ export default function Rendas() {
                 </div>
               )}
 
+              {/* Dia de recebimento (renda fixa) */}
               {form.Fixa && !editing && (
                 <div style={{ marginBottom: 14 }}>
                   <label className="input-label">Dia do mês para receber</label>
@@ -271,6 +293,28 @@ export default function Rendas() {
               </button>
               <button className="btn-primary" disabled={saving} onClick={() => doSave(confirmModal.payload, true)}>
                 {saving ? 'Salvando...' : 'Todos os meses futuros'}
+              </button>
+            </div>
+          </Modal>
+        )}
+
+        {/* Modal: confirmar deleção de renda fixa */}
+        {confirmModal?.tipo === 'deletar' && (
+          <Modal title="Deletar renda recorrente" onClose={() => setConfirmModal(null)}>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '.9rem', marginBottom: 24 }}>
+              <strong>"{confirmModal.renda.Descricao_Renda}"</strong> é uma renda fixa. Deseja deletar apenas este mês ou todos os meses futuros?
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button className="btn-secondary" onClick={() => setConfirmModal(null)}>
+                Cancelar
+              </button>
+              <button className="btn-secondary" style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
+                onClick={() => doDelete(confirmModal.renda.Id_Renda, false)}>
+                Só este mês
+              </button>
+              <button className="btn-primary" style={{ background: 'var(--color-danger)' }}
+                onClick={() => doDelete(confirmModal.renda.Id_Renda, true)}>
+                Todos os meses futuros
               </button>
             </div>
           </Modal>

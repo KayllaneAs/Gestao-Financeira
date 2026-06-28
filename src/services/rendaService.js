@@ -96,6 +96,29 @@ class RendaService {
     await renda.update(rest)
     return renda
   }
+
+  async deletar(id, deletarTodas = false) {
+    const renda = await this.buscarPorId(id)
+    const userId = renda.Id_Usuario
+
+    if (deletarTodas && renda.Fixa) {
+      await Renda.destroy({
+        where: {
+          Id_Usuario: renda.Id_Usuario,
+          Fixa: true,
+          Descricao_Renda: renda.Descricao_Renda,
+          Dia_Vencimento: renda.Dia_Vencimento,
+          Data: { [Op.gte]: renda.Data },
+        }
+      })
+      cacheService.invalidateUser(userId)
+      return { mensagem: 'Rendas fixas deletadas com sucesso' }
+    }
+
+    await renda.destroy()
+    cacheService.invalidateUser(userId)
+    return { mensagem: 'Renda deletada com sucesso' }
+  }
 }
 
 export default new RendaService()
