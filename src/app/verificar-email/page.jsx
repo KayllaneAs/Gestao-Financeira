@@ -24,11 +24,28 @@ export default function VerificarEmail() {
   }, [email, router])
 
   useEffect(() => {
-    if (cooldown <= 0) return
+    if (cooldown <= 0) {
+      localStorage.removeItem('cooldownReenvio')
+      return
+    }
+
     const t = setTimeout(() => setCooldown(c => c - 1), 1000)
     return () => clearTimeout(t)
   }, [cooldown])
 
+  useEffect(() => {
+    const saved = Number(localStorage.getItem('cooldownReenvio'))
+
+    if (saved) {
+      const restante = Math.floor((saved - Date.now()) / 1000)
+
+      if (restante > 0) {
+        setCooldown(restante)
+      } else {
+        localStorage.removeItem('cooldownReenvio')
+      }
+    }
+  }, [])
   const handleDigito = (index, valor) => {
     if (!/^\d?$/.test(valor)) return
     const novos = [...digitos]
@@ -79,6 +96,9 @@ export default function VerificarEmail() {
     try {
       await api.post('/usuarios/reenviar-codigo', { email })
       setReenvioMsg('Novo código enviado!')
+      // Inicia o cooldown de 60 segundos
+      const tempoFinal = Date.now() + 60000
+      localStorage.setItem('cooldownReenvio', tempoFinal)
       setCooldown(60)
     } catch (err) {
       setError(err.response?.data?.error || 'Erro ao reenviar código')
