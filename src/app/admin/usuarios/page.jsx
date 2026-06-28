@@ -23,6 +23,16 @@ export default function AdminPanel() {
   const [modalDelete, setModalDelete] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [toast, setToast] = useState(null)
+  const [search, setSearch] = useState('')
+
+  const usuariosFiltrados = usuarios.filter((u) => {
+    const termo = search.toLowerCase()
+
+    return (
+      u.Nome?.toLowerCase().includes(termo) ||
+      u.Email?.toLowerCase().includes(termo)
+    )
+  })
 
   useEffect(() => {
     if (loading) return
@@ -40,9 +50,9 @@ export default function AdminPanel() {
     setLoading(true)
     try {
       const [statsRes, usuariosRes] = await Promise.all([
-      api.get('/admin/stats'),      // <- essa rota não existe ainda
-      api.get('/admin/usuarios')
-    ])
+        api.get('/admin/stats'),      // <- essa rota não existe ainda
+        api.get('/admin/usuarios')
+      ])
       setStats(statsRes.data.data)
       setUsuarios(usuariosRes.data.data)
     } catch {
@@ -146,6 +156,24 @@ export default function AdminPanel() {
           </div>
         )}
 
+
+        <div style={{ marginBottom: 16 }}>
+          <input
+            type="text"
+            placeholder="Buscar por nome ou e-mail..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface-2)',
+              color: 'var(--color-text)',
+              fontSize: '.9rem'
+            }}
+          />
+        </div>
         {/* Tabela de Usuários */}
         <div className="glass-card" style={{ padding: 24 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -169,7 +197,7 @@ export default function AdminPanel() {
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((u) => (
+                {usuariosFiltrados.map((u) => (
                   <tr key={u.Id_Usuario} style={{
                     borderBottom: '1px solid var(--color-border)',
                     transition: 'background .15s',
@@ -254,6 +282,22 @@ export default function AdminPanel() {
                     </td>
                   </tr>
                 ))}
+
+                {usuariosFiltrados.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{
+                        padding: 20,
+                        textAlign: 'center',
+                        color: 'var(--color-text-muted)'
+                      }}
+                    >
+                      Nenhum usuário encontrado.
+                    </td>
+                  </tr>
+                )}
+
               </tbody>
             </table>
           </div>
