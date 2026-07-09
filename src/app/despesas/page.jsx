@@ -33,6 +33,7 @@ export default function Despesas() {
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCat, setFilterCat] = useState('')
+  const [filterConta, setFilterConta] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => { if (!user) router.push('/login') }, [user, router])
@@ -119,7 +120,8 @@ export default function Despesas() {
   const filtered = despesas.filter(d => {
     const matchSearch = !searchTerm || d.Descricao_Despesa?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchCat = !filterCat || d.Categoria === filterCat
-    return matchSearch && matchCat
+    const matchConta = !filterConta || d.Id_Conta === filterConta
+    return matchSearch && matchCat && matchConta
   })
 
   const total = filtered.reduce((s, d) => s + Number(d.Valor_Parcela), 0)
@@ -155,8 +157,17 @@ export default function Despesas() {
             <option value="">Todas categorias</option>
             {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          {(searchTerm || filterCat) && (
-            <button className="btn-icon" onClick={() => { setSearchTerm(''); setFilterCat('') }} title="Limpar filtros">
+          <select className="input-field" style={{ margin: 0, minWidth: 160, maxWidth: 220, cursor: 'pointer' }}
+            value={filterConta} onChange={e => setFilterConta(e.target.value)}>
+            <option value="">Todas as contas</option>
+            {contas.map(c => (
+              <option key={c.Id_Conta} value={c.Id_Conta}>
+                {c.Nome_Conta} ({c.Tipo === 'cartao' ? 'Cartão' : 'Conta'})
+              </option>
+            ))}
+          </select>
+          {(searchTerm || filterCat || filterConta) && (
+            <button className="btn-icon" onClick={() => { setSearchTerm(''); setFilterCat(''); setFilterConta('') }} title="Limpar filtros">
               <X size={16} />
             </button>
           )}
