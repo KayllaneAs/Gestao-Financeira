@@ -140,7 +140,7 @@ export default function Despesas() {
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <MonthSelector mes={mes} ano={ano} onChange={(m, a) => { setMes(m); setAno(a) }} />
-            {/* <button className="btn-secondary" onClick={exportCSV}><Download size={16} /> CSV</button> */}
+            <button className="btn-secondary" onClick={exportCSV}><Download size={16} /> CSV</button>
             <button className="btn-primary" onClick={openCreate}><Plus size={16} /> Nova Despesa</button>
           </div>
         </div>

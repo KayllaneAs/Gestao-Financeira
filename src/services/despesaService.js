@@ -1,5 +1,6 @@
 import { Op } from 'sequelize'
 import models from '@/models/index.js'
+import cacheService, { CACHE_KEYS, TTL } from './cacheService.js'
 
 const { Despesa, ContaCartao, ParcelamentoAgrupador, sequelize } = models
 
@@ -17,7 +18,8 @@ class DespesaService {
         Categoria: dados.Categoria,
         Numero_Parcela: 1
       })
-    
+      // Invalidate cache for this user
+      cacheService.invalidateUser(dados.Id_Usuario)
       return await this.buscarPorId(despesa.Id_Despesa)
     }
 
@@ -58,6 +60,8 @@ class DespesaService {
       }
 
       await transaction.commit()
+      // Invalidate cache for this user
+      cacheService.invalidateUser(dados.Id_Usuario)
       return { parcelamento, despesas: despesasCriadas }
     } catch (error) {
       await transaction.rollback()
@@ -152,56 +156,74 @@ class DespesaService {
    * OPTIMIZED: Uses SQL SUM instead of loading all records
    */
   async calcularTotalPorPeriodo(idUsuario, filtros = {}) {
-    const where = this._buildWhereClause(idUsuario, filtros)
+    const cacheKey = cacheService.generateKey(CACHE_KEYS.DESPESAS_LISTA, idUsuario, { ...filtros, type: 'total' })
     
-    const result = await Despesa.findOne({
+    return cacheService.getOrSet(cacheKey, async () => {
+      const where = this._buildWhereClause(idUsuario, filtros)
+      
+      const result = await Despesa.findOne({
         where,
         attributes: [
-        [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('Valor_Parcela')), 0), 'total']
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('Valor_Parcela')), 0), 'total']
         ],
         raw: true
-    })
-    
-    return parseFloat(parseFloat(result?.total || 0).toFixed(2))
-    }
+      })
+      
+      return parseFloat(parseFloat(result?.total || 0).toFixed(2))
+    }, TTL.SHORT)
+  }
 
-    async calcularPorCategoria(idUsuario, filtros = {}) {
-    const where = this._buildWhereClause(idUsuario, filtros)
+  /**
+   * OPTIMIZED: Uses SQL GROUP BY instead of in-memory aggregation
+   */
+  async calcularPorCategoria(idUsuario, filtros = {}) {
+    const cacheKey = cacheService.generateKey(CACHE_KEYS.DESPESAS_CATEGORIA, idUsuario, filtros)
     
-    const results = await Despesa.findAll({
+    return cacheService.getOrSet(cacheKey, async () => {
+      const where = this._buildWhereClause(idUsuario, filtros)
+      
+      const results = await Despesa.findAll({
         where,
         attributes: [
-        'Categoria',
-        [sequelize.fn('SUM', sequelize.col('Valor_Parcela')), 'total']
+          'Categoria',
+          [sequelize.fn('SUM', sequelize.col('Valor_Parcela')), 'total']
         ],
         group: ['Categoria'],
         raw: true
-    })
-    
-    return results.map(r => ({
+      })
+      
+      return results.map(r => ({
         categoria: r.Categoria,
         total: parseFloat(parseFloat(r.total || 0).toFixed(2))
-    }))
-    }
+      }))
+    }, TTL.MEDIUM)
+  }
 
-    async topDespesas(idUsuario, filtros = {}, limite = 5) {
-    const where = this._buildWhereClause(idUsuario, filtros)
+  /**
+   * OPTIMIZED: Uses SQL LIMIT and ORDER instead of loading all then slicing
+   */
+  async topDespesas(idUsuario, filtros = {}, limite = 5) {
+    const cacheKey = cacheService.generateKey(CACHE_KEYS.DESPESAS_TOP, idUsuario, { ...filtros, limite })
     
-    const despesas = await Despesa.findAll({
+    return cacheService.getOrSet(cacheKey, async () => {
+      const where = this._buildWhereClause(idUsuario, filtros)
+      
+      const despesas = await Despesa.findAll({
         where,
         include: [
-        {
+          {
             model: ContaCartao,
             as: 'conta',
             attributes: ['Id_Conta', 'Nome_Conta', 'Tipo', 'Cor_Hex']
-        }
+          }
         ],
         order: [['Valor_Parcela', 'DESC']],
         limit: limite
-    })
-    
-    return despesas
-    }
+      })
+      
+      return despesas
+    }, TTL.MEDIUM)
+  }
 
   async exportarCSV(idUsuario, filtros = {}) {
     // For export, we need specific fields only - optimized query
@@ -242,6 +264,8 @@ class DespesaService {
   async atualizar(id, dados) {
     const despesa = await this.buscarPorId(id)
     await despesa.update(dados)
+    // Invalidate cache for this user
+    cacheService.invalidateUser(despesa.Id_Usuario)
     return await this.buscarPorId(id)
   }
 
@@ -253,11 +277,13 @@ class DespesaService {
       const parcelamento = await ParcelamentoAgrupador.findByPk(despesa.Id_Parcelamento)
       if (parcelamento) {
         await parcelamento.destroy()
+        cacheService.invalidateUser(userId)
         return { mensagem: 'Parcelamento e todas as parcelas deletados com sucesso' }
       }
     }
 
     await despesa.destroy()
+    cacheService.invalidateUser(userId)
     return { mensagem: 'Despesa deletada com sucesso' }
   }
 }
