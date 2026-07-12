@@ -100,12 +100,7 @@ export default function Rendas() {
 
 
   const handleDelete = (r) => {
-    if (r.Fixa) {
-      setConfirmModal({ tipo: 'deletar', renda: r })
-    } else {
-      if (!confirm(`Deletar "${r.Descricao_Renda}"?`)) return
-      doDelete(r.Id_Renda, false)
-    }
+    setConfirmModal({ tipo: 'deletar', renda: r })
   }
 
   const doDelete = async (id, deletarTodas) => {
@@ -319,20 +314,32 @@ export default function Rendas() {
         {confirmModal?.tipo === 'deletar' && (
           <Modal title="Deletar renda recorrente" onClose={() => setConfirmModal(null)}>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '.9rem', marginBottom: 24 }}>
-              <strong>"{confirmModal.renda.Descricao_Renda}"</strong> é uma renda fixa. Deseja deletar apenas este mês ou todos os meses futuros?
+              {confirmModal.renda.Fixa
+                ? <><strong>"{confirmModal.renda.Descricao_Renda}"</strong> é uma renda fixa. Deseja deletar apenas este mês ou todos os meses futuros?</>
+                : <>Tem certeza que deseja deletar <strong>"{confirmModal.renda.Descricao_Renda}"</strong>?</>
+              }
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <button className="btn-secondary" onClick={() => setConfirmModal(null)}>
                 Cancelar
               </button>
-              <button className="btn-secondary" style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
-                onClick={() => doDelete(confirmModal.renda.Id_Renda, false)}>
-                Só este mês
-              </button>
-              <button className="btn-primary" style={{ background: 'var(--color-danger)' }}
-                onClick={() => doDelete(confirmModal.renda.Id_Renda, true)}>
-                Todos os meses futuros
-              </button>
+              {confirmModal.renda.Fixa ? (
+                <>
+                  <button className="btn-secondary" style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
+                    onClick={() => doDelete(confirmModal.renda.Id_Renda, false)}>
+                    Só este mês
+                  </button>
+                  <button className="btn-primary" style={{ background: 'var(--color-danger)' }}
+                    onClick={() => doDelete(confirmModal.renda.Id_Renda, true)}>
+                    Todos os meses futuros
+                  </button>
+                </>
+              ) : (
+                <button className="btn-primary" style={{ background: 'var(--color-danger)' }}
+                  onClick={() => doDelete(confirmModal.renda.Id_Renda, false)}>
+                  Deletar
+                </button>
+              )}
             </div>
           </Modal>
         )}
