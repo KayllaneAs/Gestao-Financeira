@@ -1,3 +1,4 @@
+import cacheService, { CACHE_KEYS, TTL } from './cacheService.js'
 import { Op } from 'sequelize'
 import models from '@/models/index.js'
 
@@ -37,7 +38,9 @@ class RendaService {
       })
     }
 
-    return Renda.bulkCreate(registros, { returning: true })
+    const criadas = await Renda.bulkCreate(registros, { returning: true })
+    cacheService.invalidateUser(Id_Usuario)
+    return criadas
   }
 
   async buscarPorId(id) {
@@ -94,6 +97,7 @@ class RendaService {
 
     const { atualizarTodas, ...rest } = dados
     await renda.update(rest)
+    cacheService.invalidateUser(renda.Id_Usuario)
     return renda
   }
 

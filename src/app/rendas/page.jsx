@@ -34,6 +34,7 @@ export default function Rendas() {
   const [searchTerm, setSearchTerm] = useState('')
   const [error, setError] = useState('')
   const [confirmModal, setConfirmModal] = useState(null) // { tipo: 'deletar'|'editar', renda, payload? }
+  const [toast, setToast] = useState(null)
 
   useEffect(() => { if (!user) router.push('/login') }, [user, router])
 
@@ -48,6 +49,11 @@ export default function Rendas() {
   }, [user, mes, ano])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   const openCreate = () => {
     setForm({ ...emptyForm, Data: `${ano}-${String(mes).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}` })
@@ -92,6 +98,7 @@ export default function Rendas() {
     setSaving(false)
   }
 
+
   const handleDelete = (r) => {
     if (r.Fixa) {
       setConfirmModal({ tipo: 'deletar', renda: r })
@@ -104,9 +111,8 @@ export default function Rendas() {
   const doDelete = async (id, deletarTodas) => {
     try {
       await api.delete(`/rendas/${id}?deletarTodas=${deletarTodas}`)
-      setConfirmModal(null); fetchData()
-      window.location.reload() // Adicionado para recarregar a página
-    } catch { }
+      setConfirmModal(null); fetchData(); showToast('Renda excluída com sucesso')
+    } catch { showToast('Erro ao excluir renda', 'error') }
   }
 
   const filtered = rendas.filter(r => !searchTerm || r.Descricao_Renda?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -117,6 +123,17 @@ export default function Rendas() {
 
   return (
     <Layout>
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, right: 24, zIndex: 9999,
+          padding: '14px 20px', borderRadius: 12, fontWeight: 600, fontSize: '.9rem',
+          background: toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-primary)',
+          color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          animation: 'fadeIn .3s ease'
+        }}>
+          {toast.message}
+        </div>
+      )}
       <div style={{ animation: 'fadeIn .4s ease' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
