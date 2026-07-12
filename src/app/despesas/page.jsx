@@ -35,6 +35,8 @@ export default function Despesas() {
   const [filterCat, setFilterCat] = useState('')
   const [filterConta, setFilterConta] = useState('')
   const [error, setError] = useState('')
+  const [confirmModal, setConfirmModal] = useState(null)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => { if (!user) router.push('/login') }, [user, router])
 
@@ -53,6 +55,11 @@ export default function Despesas() {
   }, [user, mes, ano])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   const openCreate = () => {
     setForm({ ...emptyForm, Data: `${ano}-${String(mes).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}` })
@@ -96,13 +103,15 @@ export default function Despesas() {
     setSaving(false)
   }
 
-  const handleDelete = async (d) => {
-    if (!confirm(`Deletar "${d.Descricao_Despesa}"?`)) return
-    const deletarParcelamento = d.Id_Parcelamento ? true : false
+  const handleDelete = (d) => {
+    setConfirmModal({ despesa: d })
+  }
+
+  const doDelete = async (d, deletarParcelamento) => {
     try {
       await api.delete(`/despesas/${d.Id_Despesa}?deletarParcelamento=${deletarParcelamento}`)
-      fetchData()
-    } catch { }
+      setConfirmModal(null); fetchData(); showToast('Despesa excluída com sucesso')
+    } catch { showToast('Erro ao excluir despesa', 'error') }
   }
 
   const exportCSV = async () => {
@@ -131,6 +140,17 @@ export default function Despesas() {
 
   return (
     <Layout>
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, right: 24, zIndex: 9999,
+          padding: '14px 20px', borderRadius: 12, fontWeight: 600, fontSize: '.9rem',
+          background: toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-primary)',
+          color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          animation: 'fadeIn .3s ease'
+        }}>
+          {toast.message}
+        </div>
+      )}
       <div style={{ animation: 'fadeIn .4s ease' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -299,6 +319,38 @@ export default function Despesas() {
                 </button>
               </div>
             </form>
+          </Modal>
+        )}
+
+        {/* Modal confirmar exclusão */}
+        {confirmModal && (
+          <Modal title="Excluir Despesa" onClose={() => setConfirmModal(null)}>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '.9rem', marginBottom: 24 }}>
+              {confirmModal.despesa.Id_Parcelamento
+                ? <>Esta despesa faz parte de um parcelamento. Deseja excluir apenas esta parcela ou todo o parcelamento?</>
+                : <>Tem certeza que deseja excluir <strong>"{confirmModal.despesa.Descricao_Despesa}"</strong>?</>
+              }
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button className="btn-secondary" onClick={() => setConfirmModal(null)}>Cancelar</button>
+              {confirmModal.despesa.Id_Parcelamento ? (
+                <>
+                  <button className="btn-secondary" style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
+                    onClick={() => doDelete(confirmModal.despesa, false)}>
+                    Só esta parcela
+                  </button>
+                  <button className="btn-primary" style={{ background: 'var(--color-danger)' }}
+                    onClick={() => doDelete(confirmModal.despesa, true)}>
+                    Todo o parcelamento
+                  </button>
+                </>
+              ) : (
+                <button className="btn-primary" style={{ background: 'var(--color-danger)' }}
+                  onClick={() => doDelete(confirmModal.despesa, false)}>
+                  Excluir
+                </button>
+              )}
+            </div>
           </Modal>
         )}
       </div>
