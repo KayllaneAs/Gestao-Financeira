@@ -4,14 +4,16 @@ import defineContaCartao from './ContaCartao.js'
 import defineRenda from './renda.js'
 import defineParcelamentoAgrupador from './ParcelamentoAgrupador.js'
 import defineDespesa from './Despesa.js'
+import defineReserva from './Reserva.js'
 
 const Usuario = defineUsuario(sequelize)
 const ContaCartao = defineContaCartao(sequelize)
 const Renda = defineRenda(sequelize)
 const ParcelamentoAgrupador = defineParcelamentoAgrupador(sequelize)
 const Despesa = defineDespesa(sequelize)
+const Reserva = defineReserva(sequelize)
 
-const db = { sequelize, Usuario, ContaCartao, Renda, ParcelamentoAgrupador, Despesa }
+const db = { sequelize, Usuario, ContaCartao, Renda, ParcelamentoAgrupador, Despesa, Reserva }
 
 Object.values(db).forEach((model) => {
   if (model?.associate) model.associate(db)
