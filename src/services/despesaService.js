@@ -164,7 +164,7 @@ class DespesaService {
       const result = await Despesa.findOne({
         where,
         attributes: [
-          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('Valor_Parcela')), 0), 'total']
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('valor_parcela')), 0), 'total']
         ],
         raw: true
       })
@@ -186,7 +186,7 @@ class DespesaService {
         where,
         attributes: [
           'Categoria',
-          [sequelize.fn('SUM', sequelize.col('Valor_Parcela')), 'total']
+          [sequelize.fn('SUM', sequelize.col('valor_parcela')), 'total']
         ],
         group: ['Categoria'],
         raw: true

@@ -53,21 +53,31 @@ class RendaService {
     return renda
   }
 
-  _buildWhereClause(idUsuario, filtros = {}) {
-    const where = { Id_Usuario: idUsuario }
-    if (filtros.mes && filtros.ano) {
-      const mes = parseInt(filtros.mes)
-      const ano = parseInt(filtros.ano)
-      const primeiroDia = `${ano}-${String(mes).padStart(2, '0')}-01`
-      const ultimoDia = new Date(ano, mes, 0).toISOString().split('T')[0]
-      where.Data = { [Op.between]: [primeiroDia, ultimoDia] }
+ _buildWhereClause(idUsuario, filtros = {}) {
+  const where = { Id_Usuario: idUsuario }
+
+  if (filtros.dataInicio && filtros.dataFim) {
+    where.Data = {
+      [Op.between]: [filtros.dataInicio, filtros.dataFim]
     }
-    return where
+  } else if (filtros.mes && filtros.ano) {
+    const mes = parseInt(filtros.mes)
+    const ano = parseInt(filtros.ano)
+
+    const primeiroDia = `${ano}-${String(mes).padStart(2, '0')}-01`
+    const ultimoDia = new Date(ano, mes, 0).toISOString().split('T')[0]
+
+    where.Data = {
+      [Op.between]: [primeiroDia, ultimoDia]
+    }
   }
+
+  return where
+}
 
   async listarPorUsuario(idUsuario, filtros = {}) {
     const where = this._buildWhereClause(idUsuario, filtros)
-    return Renda.findAll({ where, order: [['Data', 'DESC']] })
+    return Renda.findAll({ where, order: [['data', 'DESC']] })
   }
 
   async atualizar(id, dados) {
