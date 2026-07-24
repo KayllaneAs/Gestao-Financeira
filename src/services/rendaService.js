@@ -2,7 +2,7 @@ import cacheService, { CACHE_KEYS, TTL } from './cacheService.js'
 import { Op } from 'sequelize'
 import models from '@/models/index.js'
 
-const { Renda } = models
+const { Renda, sequelize } = models
 
 function gerarData(ano, mes, dia) {
   const ultimoDia = new Date(ano, mes, 0).getDate()
@@ -78,6 +78,21 @@ class RendaService {
   async listarPorUsuario(idUsuario, filtros = {}) {
     const where = this._buildWhereClause(idUsuario, filtros)
     return Renda.findAll({ where, order: [['data', 'DESC']] })
+  }
+
+  async calcularTotalPorPeriodo(idUsuario, filtros = {}) {
+    const cacheKey = cacheService.generateKey(CACHE_KEYS.RENDAS_LISTA, idUsuario, { ...filtros, type: 'total' })
+    return cacheService.getOrSet(cacheKey, async () => {
+      const where = this._buildWhereClause(idUsuario, filtros)
+      const result = await Renda.findOne({
+        where,
+        attributes: [
+          [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('valor_renda')), 0), 'total']
+        ],
+        raw: true
+      })
+      return parseFloat(parseFloat(result?.total || 0).toFixed(2))
+    }, TTL.SHORT)
   }
 
   async atualizar(id, dados) {
