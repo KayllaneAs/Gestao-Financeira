@@ -2,8 +2,16 @@ import despesaService from '@/services/despesaService.js'
 
 class DespesaController {
   async criar(body) {
-    const despesa = await despesaService.criar(body)
-    return { status: 201, data: despesa }
+    const resultado = await despesaService.criar(body)
+
+    /*
+     * US36 - CA03:
+     * O retorno inclui a mensagem da categorização para o frontend.
+     */
+    return {
+      status: 201,
+      data: resultado
+    }
   }
 
   async buscarPorId(id) {
@@ -17,22 +25,22 @@ class DespesaController {
   }
 
   async calcularTotal(idUsuario, mes, ano) {
-    const total = await despesaService.calcularTotalPorPeriodo(idUsuario, mes, ano)
+    const total = await despesaService.calcularTotalPorPeriodo(idUsuario, { mes, ano })
     return { status: 200, data: total }
   }
 
   async calcularPorCategoria(idUsuario, mes, ano) {
-    const categorias = await despesaService.calcularPorCategoria(idUsuario, mes, ano)
+    const categorias = await despesaService.calcularPorCategoria(idUsuario, { mes, ano })
     return { status: 200, data: categorias }
   }
 
   async topDespesas(idUsuario, mes, ano, limite) {
-    const top = await despesaService.topDespesas(idUsuario, mes, ano, limite)
+    const top = await despesaService.topDespesas(idUsuario, { mes, ano }, limite)
     return { status: 200, data: top }
   }
 
   async exportarCSV(idUsuario, mes, ano) {
-    const csv = await despesaService.exportarCSV(idUsuario, mes, ano)
+    const csv = await despesaService.exportarCSV(idUsuario, { mes, ano })
     return { status: 200, data: csv, isCSV: true }
   }
 

@@ -1,39 +1,10 @@
 import models from '@/models/index.js'
 import { randomUUID } from 'crypto'
+import categorizacaoService from './categorizacaoService.js'
+import cacheService from './cacheService.js'
 
 const { Despesa, ContaCartao, ParcelamentoAgrupador, sequelize } = models
 
-// ── Categorização automática por palavras-chave ───────────────────────────────
-const KEYWORDS = {
-  'Alimentação':    ['mercado', 'supermercad', 'padaria', 'acougue', 'restaurante', 'lanche', 'pizza',
-                     'ifood', 'rappi', 'hamburgue', 'assai', 'carrefour', 'extra', 'atacad', 'hortifruti',
-                     'pao de acucar', 'dia%', 'sams club'],
-  'Transporte':     ['uber', '99pop', '99 taxi', 'taxi', 'onibus', 'metro', 'combustivel', 'gasolina',
-                     'posto ', 'estacionamento', 'pedágio', 'pedagio', 'buser', 'passagem'],
-  'Saúde':          ['farmacia', 'drogaria', 'medico', 'hospital', 'clinica', 'dentista', 'exame',
-                     'remedios', 'remedio', 'manipulac', 'laboratorio', 'otica', 'plano saude'],
-  'Entretenimento': ['netflix', 'spotify', 'disney', 'hbo', 'globoplay', 'amazon prime', 'cinema',
-                     'steam', 'playstation', 'xbox', 'apple music', 'prime video', 'ingresso',
-                     'show ', 'jogo ', 'game'],
-  'Educação':       ['escola', 'faculdade', 'universidade', 'curso', 'udemy', 'alura', 'livraria',
-                     'livro ', 'apostila', 'material escolar'],
-  'Roupas':         ['renner', 'hering', 'zara', 'c&a', 'riachuelo', 'roupa', 'calcado', 'sapato',
-                     'tenis ', 'moda', 'nike', 'adidas', 'puma', 'cea '],
-  'Contas':         ['enel', 'cedae', 'sabesp', 'claro', 'vivo', 'tim ', ' oi ', 'internet',
-                     'energia ', 'agua ', 'gas ', 'seguro', 'recarga', 'fatura'],
-  'Moradia':        ['aluguel', 'condominio', 'manutencao', 'reforma', 'chuveiro', 'encanador',
-                     'eletricista', 'construcao', 'tinta ', 'material construc'],
-  'Eletrônicos':    ['notebook', 'celular', 'iphone', 'samsung', 'dell', 'apple store', 'computador',
-                     'tablet', 'monitor', 'teclado', 'mouse ', 'fone ', 'headphone', 'carregador'],
-}
-
-function sugerirCategoria(descricao) {
-  const lower = descricao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  for (const [cat, palavras] of Object.entries(KEYWORDS)) {
-    if (palavras.some(p => lower.includes(p))) return cat
-  }
-  return 'Outros'
-}
 
 // ── Parser CSV ────────────────────────────────────────────────────────────────
 function detectarSeparador(texto) {
@@ -185,7 +156,13 @@ class ImportacaoService {
         descricaoBase:   parcela ? parcela.descBase : desc,
         data,
         valor:           parseFloat(valorAbs.toFixed(2)),
-        categoria:       sugerirCategoria(parcela ? parcela.descBase : desc),
+        // US36 - CA01: categorização automática usando palavras-chave.
+        categoria:       categorizacaoService.sugerirCategoria(parcela ? parcela.descBase : desc) || 'Outros',
+
+        // US36 - CA03: indica se foi necessário usar a categoria genérica.
+        categoriaSugerida: Boolean(
+          categorizacaoService.sugerirCategoria(parcela ? parcela.descBase : desc)
+        ),
         parcela,          // { atual, total, descBase } ou null
         ehParcelamento:  parcela !== null,
       })
@@ -246,9 +223,16 @@ class ImportacaoService {
       // IDs para desfazer
       idsParcelamentos: [],
       idsDespesasAvulsas: [],
+
+      // US36 - CA03: contabiliza transações sem categoria específica.
+      semCategoriaSugerida: 0,
     }
 
     try {
+      resultado.semCategoriaSugerida =
+        grupos.filter(g => !g.categoria || g.categoria === 'Outros').length +
+        transacoes.filter(t => !t.ehParcelamento && (!t.categoria || t.categoria === 'Outros')).length
+
       // 1. Cria todos os parcelamentos detectados (todas as parcelas, passado e futuro)
       for (const g of grupos) {
         const idParc = randomUUID()
@@ -302,6 +286,17 @@ class ImportacaoService {
       }
 
       await transaction.commit()
+
+      /*
+       * US36 - CA02:
+       * Atualiza dashboard e relatórios após gravar todas as transações.
+       */
+      cacheService.invalidateUser(idUsuario)
+
+      resultado.mensagem = resultado.semCategoriaSugerida > 0
+        ? `Importação concluída. ${resultado.semCategoriaSugerida} transação(ões) não tiveram categoria específica sugerida e foram classificadas como Outros.`
+        : 'Importação concluída com todas as transações categorizadas.'
+
       return resultado
     } catch (err) {
       await transaction.rollback()
@@ -329,6 +324,10 @@ class ImportacaoService {
         })
       }
       await transaction.commit()
+
+      // US36 - CA02: atualiza dashboard depois de desfazer a importação.
+      cacheService.invalidateUser(idUsuario)
+
       return { mensagem: 'Importação desfeita com sucesso' }
     } catch (err) {
       await transaction.rollback()

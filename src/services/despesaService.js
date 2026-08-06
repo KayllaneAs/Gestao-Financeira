@@ -1,12 +1,31 @@
 import { Op } from 'sequelize'
 import models from '@/models/index.js'
 import cacheService, { CACHE_KEYS, TTL } from './cacheService.js'
+import categorizacaoService from './categorizacaoService.js'
 
 const { Despesa, ContaCartao, ParcelamentoAgrupador, sequelize } = models
 
 class DespesaService {
   async criar(dados) {
     const numeroParcelas = dados.Numero_Parcelas || 1
+
+    /*
+     * US36 - CA01:
+     * Quando o usuário não selecionar uma categoria, o sistema tenta
+     * sugerir uma automaticamente pela descrição da despesa.
+     */
+    const categoriaSugerida = dados.Categoria?.trim()
+      ? null
+      : categorizacaoService.sugerirCategoria(dados.Descricao_Despesa)
+
+    /*
+     * US36 - CA03:
+     * O model exige uma categoria. Quando nenhuma sugestão for encontrada,
+     * a transação é salva como "Outros", mas o retorno informa claramente
+     * que nenhuma categoria específica pôde ser sugerida.
+     */
+    const categoriaFinal = dados.Categoria?.trim() || categoriaSugerida || 'Outros'
+    const categorizadaAutomaticamente = Boolean(categoriaSugerida)
 
     if (numeroParcelas <= 1) {
       const despesa = await Despesa.create({
@@ -15,12 +34,29 @@ class DespesaService {
         Descricao_Despesa: dados.Descricao_Despesa,
         Valor_Parcela: dados.Valor_Parcela || dados.Valor_Total || 0,
         Data: dados.Data,
-        Categoria: dados.Categoria,
+        Categoria: categoriaFinal,
         Numero_Parcela: 1
       })
-      // Invalidate cache for this user
+
+      /*
+       * US36 - CA02:
+       * Limpa os caches do usuário para que dashboard e relatórios
+       * sejam atualizados após a categorização.
+       */
       cacheService.invalidateUser(dados.Id_Usuario)
-      return await this.buscarPorId(despesa.Id_Despesa)
+
+      const despesaCompleta = await this.buscarPorId(despesa.Id_Despesa)
+
+      return {
+        despesa: despesaCompleta,
+        categorizada_automaticamente: categorizadaAutomaticamente,
+        categoria_sugerida: categoriaSugerida,
+        mensagem: categorizadaAutomaticamente
+          ? `Transação categorizada automaticamente como ${categoriaSugerida}.`
+          : dados.Categoria?.trim()
+            ? 'Despesa criada com a categoria selecionada.'
+            : 'Nenhuma categoria específica pôde ser sugerida. A despesa foi classificada como Outros.'
+      }
     }
 
     const transaction = await sequelize.transaction()
@@ -52,7 +88,7 @@ class DespesaService {
           Descricao_Despesa: dados.Descricao_Despesa,
           Valor_Parcela: valorParcela,
           Data: dataFormatada,
-          Categoria: dados.Categoria,
+          Categoria: categoriaFinal,
           Numero_Parcela: i + 1
         }, { transaction })
 
@@ -60,9 +96,21 @@ class DespesaService {
       }
 
       await transaction.commit()
-      // Invalidate cache for this user
+
+      // US36 - CA02: atualiza dashboard e relatórios após o parcelamento.
       cacheService.invalidateUser(dados.Id_Usuario)
-      return { parcelamento, despesas: despesasCriadas }
+
+      return {
+        parcelamento,
+        despesas: despesasCriadas,
+        categorizada_automaticamente: categorizadaAutomaticamente,
+        categoria_sugerida: categoriaSugerida,
+        mensagem: categorizadaAutomaticamente
+          ? `Parcelamento categorizado automaticamente como ${categoriaSugerida}.`
+          : dados.Categoria?.trim()
+            ? 'Parcelamento criado com a categoria selecionada.'
+            : 'Nenhuma categoria específica pôde ser sugerida. O parcelamento foi classificado como Outros.'
+      }
     } catch (error) {
       await transaction.rollback()
       throw error
@@ -90,6 +138,7 @@ class DespesaService {
       error.statusCode = 404
       throw error
     }
+
     return despesa
   }
 
@@ -113,6 +162,7 @@ class DespesaService {
     if (filtros.categoria) {
       where.Categoria = filtros.categoria
     }
+
     if (filtros.idConta) {
       where.Id_Conta = filtros.idConta
     }
@@ -122,7 +172,7 @@ class DespesaService {
 
   async listarPorUsuario(idUsuario, filtros = {}, options = {}) {
     const where = this._buildWhereClause(idUsuario, filtros)
-    
+
     const queryOptions = {
       where,
       include: [
@@ -140,27 +190,27 @@ class DespesaService {
       order: [['Data', 'DESC']]
     }
 
-    // Add pagination if provided
     if (options.limit) {
       queryOptions.limit = options.limit
     }
+
     if (options.offset) {
       queryOptions.offset = options.offset
     }
 
-    const despesas = await Despesa.findAll(queryOptions)
-    return despesas
+    return Despesa.findAll(queryOptions)
   }
 
-  /**
-   * OPTIMIZED: Uses SQL SUM instead of loading all records
-   */
   async calcularTotalPorPeriodo(idUsuario, filtros = {}) {
-    const cacheKey = cacheService.generateKey(CACHE_KEYS.DESPESAS_LISTA, idUsuario, { ...filtros, type: 'total' })
-    
+    const cacheKey = cacheService.generateKey(
+      CACHE_KEYS.DESPESAS_LISTA,
+      idUsuario,
+      { ...filtros, type: 'total' }
+    )
+
     return cacheService.getOrSet(cacheKey, async () => {
       const where = this._buildWhereClause(idUsuario, filtros)
-      
+
       const result = await Despesa.findOne({
         where,
         attributes: [
@@ -168,20 +218,21 @@ class DespesaService {
         ],
         raw: true
       })
-      
+
       return parseFloat(parseFloat(result?.total || 0).toFixed(2))
     }, TTL.SHORT)
   }
 
-  /**
-   * OPTIMIZED: Uses SQL GROUP BY instead of in-memory aggregation
-   */
   async calcularPorCategoria(idUsuario, filtros = {}) {
-    const cacheKey = cacheService.generateKey(CACHE_KEYS.DESPESAS_CATEGORIA, idUsuario, filtros)
-    
+    const cacheKey = cacheService.generateKey(
+      CACHE_KEYS.DESPESAS_CATEGORIA,
+      idUsuario,
+      filtros
+    )
+
     return cacheService.getOrSet(cacheKey, async () => {
       const where = this._buildWhereClause(idUsuario, filtros)
-      
+
       const results = await Despesa.findAll({
         where,
         attributes: [
@@ -191,24 +242,25 @@ class DespesaService {
         group: ['Categoria'],
         raw: true
       })
-      
-      return results.map(r => ({
-        categoria: r.Categoria,
-        total: parseFloat(parseFloat(r.total || 0).toFixed(2))
+
+      return results.map((resultado) => ({
+        categoria: resultado.Categoria,
+        total: parseFloat(parseFloat(resultado.total || 0).toFixed(2))
       }))
     }, TTL.MEDIUM)
   }
 
-  /**
-   * OPTIMIZED: Uses SQL LIMIT and ORDER instead of loading all then slicing
-   */
   async topDespesas(idUsuario, filtros = {}, limite = 5) {
-    const cacheKey = cacheService.generateKey(CACHE_KEYS.DESPESAS_TOP, idUsuario, { ...filtros, limite })
-    
+    const cacheKey = cacheService.generateKey(
+      CACHE_KEYS.DESPESAS_TOP,
+      idUsuario,
+      { ...filtros, limite }
+    )
+
     return cacheService.getOrSet(cacheKey, async () => {
       const where = this._buildWhereClause(idUsuario, filtros)
-      
-      const despesas = await Despesa.findAll({
+
+      return Despesa.findAll({
         where,
         include: [
           {
@@ -220,15 +272,12 @@ class DespesaService {
         order: [['Valor_Parcela', 'DESC']],
         limit: limite
       })
-      
-      return despesas
     }, TTL.MEDIUM)
   }
 
   async exportarCSV(idUsuario, filtros = {}) {
-    // For export, we need specific fields only - optimized query
     const where = this._buildWhereClause(idUsuario, filtros)
-    
+
     const despesas = await Despesa.findAll({
       where,
       attributes: ['Descricao_Despesa', 'Valor_Parcela', 'Data', 'Categoria', 'Numero_Parcela'],
@@ -246,27 +295,44 @@ class DespesaService {
       ],
       order: [['Data', 'DESC']]
     })
-    
+
     const header = 'Descricao;Valor;Data;Categoria;Conta;Parcela\n'
-    const linhas = despesas.map(d => {
-      return [
-        d.Descricao_Despesa,
-        parseFloat(d.Valor_Parcela).toFixed(2).replace('.', ','),
-        d.Data,
-        d.Categoria,
-        d.conta?.Nome_Conta || '',
-        d.parcelamento ? `${d.Numero_Parcela}/${d.parcelamento.Qtd_Parcelas}` : 'À vista'
-      ].join(';')
-    }).join('\n')
+
+    const linhas = despesas.map((despesa) => [
+      despesa.Descricao_Despesa,
+      parseFloat(despesa.Valor_Parcela).toFixed(2).replace('.', ','),
+      despesa.Data,
+      despesa.Categoria,
+      despesa.conta?.Nome_Conta || '',
+      despesa.parcelamento
+        ? `${despesa.Numero_Parcela}/${despesa.parcelamento.Qtd_Parcelas}`
+        : 'À vista'
+    ].join(';')).join('\n')
+
     return header + linhas
   }
 
   async atualizar(id, dados) {
     const despesa = await this.buscarPorId(id)
+
+    /*
+     * US36 - CA01:
+     * Na edição, se a categoria for apagada, o sistema tenta sugerir
+     * uma nova categoria com base na descrição atualizada.
+     */
+    const descricao = dados.Descricao_Despesa || despesa.Descricao_Despesa
+
+    if (!dados.Categoria?.trim()) {
+      dados.Categoria =
+        categorizacaoService.sugerirCategoria(descricao) || 'Outros'
+    }
+
     await despesa.update(dados)
-    // Invalidate cache for this user
+
+    // US36 - CA02: força atualização dos dados após editar a categoria.
     cacheService.invalidateUser(despesa.Id_Usuario)
-    return await this.buscarPorId(id)
+
+    return this.buscarPorId(id)
   }
 
   async deletar(id, deletarParcelamento = false) {
@@ -275,16 +341,23 @@ class DespesaService {
 
     if (deletarParcelamento && despesa.Id_Parcelamento) {
       const parcelamento = await ParcelamentoAgrupador.findByPk(despesa.Id_Parcelamento)
+
       if (parcelamento) {
         await parcelamento.destroy()
         cacheService.invalidateUser(userId)
-        return { mensagem: 'Parcelamento e todas as parcelas deletados com sucesso' }
+
+        return {
+          mensagem: 'Parcelamento e todas as parcelas deletados com sucesso'
+        }
       }
     }
 
     await despesa.destroy()
     cacheService.invalidateUser(userId)
-    return { mensagem: 'Despesa deletada com sucesso' }
+
+    return {
+      mensagem: 'Despesa deletada com sucesso'
+    }
   }
 }
 

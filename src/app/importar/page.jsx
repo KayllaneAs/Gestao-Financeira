@@ -353,9 +353,28 @@ function Step3Revisao({ data, onNext, onBack }) {
   return (
     <div>
       <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 8 }}>Revisão das transações</h2>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: '.875rem', marginBottom: 20 }}>
+      <p style={{ color: 'var(--color-text-muted)', fontSize: '.875rem', marginBottom: 12 }}>
         Revise e ajuste as categorias antes de confirmar.
       </p>
+
+      {/* US36 - CA03: informa quando nenhuma categoria específica foi sugerida. */}
+      {transacoes.some(t => !t.categoria || t.categoria === 'Outros') && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '10px 14px',
+          borderRadius: 10,
+          marginBottom: 20,
+          background: 'rgba(245,158,11,.08)',
+          border: '1px solid rgba(245,158,11,.25)',
+          color: '#f59e0b',
+          fontSize: '.82rem',
+        }}>
+          <AlertCircle size={16} />
+          Algumas transações não tiveram categoria específica sugerida e foram marcadas como Outros.
+        </div>
+      )}
 
       {/* Resumo */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
@@ -599,9 +618,31 @@ function Sucesso({ resultado, onReset, router }) {
     <div style={{ textAlign: 'center', padding: '40px 0' }}>
       <CheckCircle size={64} color="var(--color-primary)" style={{ marginBottom: 20 }} />
       <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 8 }}>Importação concluída!</h2>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: '.9375rem', marginBottom: 32 }}>
+      <p style={{ color: 'var(--color-text-muted)', fontSize: '.9375rem', marginBottom: 12 }}>
         Seus dados foram importados com sucesso.
       </p>
+
+      {/* US36 - CA03: mensagem clara sobre o resultado da categorização. */}
+      {resultado.mensagem && (
+        <div style={{
+          maxWidth: 620,
+          margin: '0 auto 32px',
+          padding: '10px 14px',
+          borderRadius: 10,
+          background: resultado.semCategoriaSugerida > 0
+            ? 'rgba(245,158,11,.08)'
+            : 'rgba(16,185,129,.08)',
+          border: resultado.semCategoriaSugerida > 0
+            ? '1px solid rgba(245,158,11,.25)'
+            : '1px solid rgba(16,185,129,.25)',
+          color: resultado.semCategoriaSugerida > 0
+            ? '#f59e0b'
+            : 'var(--color-primary)',
+          fontSize: '.85rem',
+        }}>
+          {resultado.mensagem}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
         {[
           { label: 'Parcelamentos criados', value: resultado.parcelamentosCriados, color: '#8b5cf6' },

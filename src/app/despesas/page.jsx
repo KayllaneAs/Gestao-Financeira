@@ -96,7 +96,17 @@ export default function Despesas() {
           Id_Conta: form.Id_Conta,
         })
       } else {
-        await api.post('/despesas', body)
+        const { data: resposta } = await api.post('/despesas', body)
+
+        /*
+         * US36 - CA03:
+         * Exibe a mensagem retornada pelo backend quando a categoria
+         * foi sugerida ou quando nenhuma categoria específica foi encontrada.
+         */
+        showToast(
+          resposta.data?.mensagem || 'Despesa criada com sucesso',
+          resposta.data?.categoria_sugerida || form.Categoria ? 'success' : 'warning'
+        )
       }
       setModal(false); fetchData()
     } catch (err) { setError(err.response?.data?.error || 'Erro ao salvar') }
@@ -144,7 +154,12 @@ export default function Despesas() {
         <div style={{
           position: 'fixed', top: 24, right: 24, zIndex: 9999,
           padding: '14px 20px', borderRadius: 12, fontWeight: 600, fontSize: '.9rem',
-          background: toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-primary)',
+          background:
+            toast.type === 'error'
+              ? 'var(--color-danger)'
+              : toast.type === 'warning'
+                ? '#f59e0b'
+                : 'var(--color-primary)',
           color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
           animation: 'fadeIn .3s ease'
         }}>
@@ -291,11 +306,17 @@ export default function Despesas() {
                 </div>
                 <div>
                   <label className="input-label">Categoria</label>
-                  <select className="input-field" required value={form.Categoria}
+                  <select className="input-field" value={form.Categoria}
                     onChange={e => setForm({ ...form, Categoria: e.target.value })} style={{ cursor: 'pointer' }}>
-                    <option value="">Selecione</option>
+                    <option value="">Automática pela descrição</option>
                     {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
+                  {/* US36 - CA01: categoria vazia ativa a sugestão automática. */}
+                  {!form.Categoria && !editing && (
+                    <small style={{ color: 'var(--color-text-muted)', fontSize: '.72rem' }}>
+                      A categoria será sugerida automaticamente pela descrição.
+                    </small>
+                  )}
                 </div>
               </div>
 
