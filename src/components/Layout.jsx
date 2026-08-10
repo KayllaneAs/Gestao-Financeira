@@ -13,7 +13,7 @@ import {
 import { useMemo, useState, useEffect } from 'react'
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/despesas', icon: Receipt, label: 'Despesas' },
   { to: '/rendas', icon: TrendingUp, label: 'Rendas' },
   { to: '/contas', icon: CreditCard, label: 'Contas' },
