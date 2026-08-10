@@ -25,6 +25,8 @@ export default function Reservas() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [confirmModal, setConfirmModal] = useState(null)
+  const [toast, setToast] = useState(null)
   const [aporteModal, setAporteModal] = useState(null)
   const [aporteValor, setAporteValor] = useState('')
   const [aporteSaving, setAporteSaving] = useState(false)
@@ -43,6 +45,11 @@ export default function Reservas() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
   const openCreate = () => { setForm(emptyForm); setEditing(null); setError(''); setModal(true) }
   const openEdit = (r) => {
     setForm({ Nome_Objetivo: r.Nome_Objetivo, Valor_Alvo: r.Valor_Alvo, Valor_Atual: r.Valor_Atual, Data_Limite: r.Data_Limite || '' })
@@ -60,9 +67,15 @@ export default function Reservas() {
     setSaving(false)
   }
 
-  const handleDelete = async (r) => {
-    if (!confirm(`Deletar reserva "${r.Nome_Objetivo}"?`)) return
-    try { await api.delete(`/reservas/${r.Id_Reserva}`); fetchData() } catch { }
+  const handleDelete = (r) => {
+    setConfirmModal(r)
+  }
+
+  const doDelete = async (r) => {
+    try {
+      await api.delete(`/reservas/${r.Id_Reserva}`)
+      setConfirmModal(null); fetchData(); showToast('Reserva excluída com sucesso')
+    } catch { showToast('Erro ao excluir reserva', 'error') }
   }
 
   const handleAporte = async () => {
@@ -83,6 +96,17 @@ export default function Reservas() {
 
   return (
     <Layout>
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 24, right: 24, zIndex: 9999,
+          padding: '14px 20px', borderRadius: 12, fontWeight: 600, fontSize: '.9rem',
+          background: toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-primary)',
+          color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          animation: 'fadeIn .3s ease'
+        }}>
+          {toast.message}
+        </div>
+      )}
       <div style={{ animation: 'fadeIn .4s ease' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
@@ -232,6 +256,26 @@ export default function Reservas() {
               <button className="btn-secondary" onClick={() => setAporteModal(null)}>Cancelar</button>
               <button className="btn-primary" onClick={handleAporte} disabled={aporteSaving || !aporteValor}>
                 {aporteSaving ? 'Processando...' : 'Confirmar'}
+              </button>
+            </div>
+          </Modal>
+        )}
+
+        {/* Modal confirmar exclusão */}
+        {confirmModal && (
+          <Modal title="Excluir Reserva" onClose={() => setConfirmModal(null)}>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '.9rem', marginBottom: 24 }}>
+              Tem certeza que deseja excluir a reserva <strong>"{confirmModal.Nome_Objetivo}"</strong>?
+              <br />
+              <span style={{ color: 'var(--color-danger)', fontSize: '.85rem', marginTop: 8, display: 'block' }}>
+                Esta ação é irreversível e o valor reservado será perdido.
+              </span>
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={() => setConfirmModal(null)}>Cancelar</button>
+              <button className="btn-primary" style={{ background: 'var(--color-danger)' }}
+                onClick={() => doDelete(confirmModal)}>
+                Excluir
               </button>
             </div>
           </Modal>
