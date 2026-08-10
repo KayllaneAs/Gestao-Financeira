@@ -149,10 +149,6 @@ export default function AdminPanel() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
             <StatCard icon={Users} label="Total Usuários" value={stats.totalUsuarios} color="indigo" />
             <StatCard icon={Crown} label="Admins" value={stats.totalAdmins} color="emerald" />
-            <StatCard icon={TrendingDown} label="Total Despesas" value={stats.totalDespesas} color="rose" sub={formatCurrency(stats.volumeTotalDespesas)} />
-            <StatCard icon={TrendingUp} label="Total Rendas" value={stats.totalRendas} color="emerald" sub={formatCurrency(stats.volumeTotalRendas)} />
-            <StatCard icon={CreditCard} label="Contas/Cartões" value={stats.totalContas} color="indigo" />
-            <StatCard icon={Target} label="Reservas" value={stats.totalReservas} color="indigo" />
           </div>
         )}
 
