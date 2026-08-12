@@ -1,5 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
+
   transform: {
     '^.+\\.js$': ['babel-jest', {
       presets: [
@@ -7,9 +8,30 @@ module.exports = {
       ]
     }]
   },
+
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
+
   testMatch: ['**/__tests__/**/*.test.js'],
-  clearMocks: true
+
+  clearMocks: true,
+
+  collectCoverage: true,
+
+  collectCoverageFrom: [
+    'src/models/**/*.js',
+    'src/services/**/*.js',
+    'src/controllers/**/*.js',
+
+    '!src/models/index.js'
+  ],
+
+  coverageReporters: [
+    'text',
+    'html',
+    'lcov'
+  ],
+
+  coverageDirectory: 'coverage'
 }
