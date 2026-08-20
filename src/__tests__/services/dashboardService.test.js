@@ -167,12 +167,14 @@ describe('DashboardService', () => {
 
       expect(result.despesas_por_categoria).toHaveLength(1)
       expect(result.top_5_despesas).toHaveLength(1)
-      expect(result.despesas_por_categoria[0].categoria).toBe(
-        'Alimentação'
-      )
-      expect(result.top_5_despesas[0].Descricao_Despesa).toBe(
-        'Mercado'
-      )
+
+      expect(
+        result.despesas_por_categoria[0].categoria
+      ).toBe('Alimentação')
+
+      expect(
+        result.top_5_despesas[0].Descricao_Despesa
+      ).toBe('Mercado')
     })
   })
 
@@ -262,10 +264,10 @@ describe('DashboardService', () => {
           },
           {
             conta: {
-              id_conta: 'c1',
-              nome_conta: 'Nubank',
-              tipo: 'cartao',
-              cor_hex: '#000000',
+              Id_Conta: 'c1',
+              Nome_Conta: 'Nubank',
+              Tipo: 'cartao',
+              Cor_Hex: '#000000',
             },
             total: '500',
             quantidade: '2',
@@ -281,9 +283,14 @@ describe('DashboardService', () => {
       )
 
       expect(result.despesas_por_conta).toHaveLength(1)
+
       expect(
         result.despesas_por_conta[0].conta.nome_conta
       ).toBe('Nubank')
+
+      expect(
+        result.despesas_por_conta[0].conta.tipo
+      ).toBe('cartao')
 
       expect(result.despesas_por_conta[0].total).toBe(500)
       expect(result.despesas_por_conta[0].quantidade).toBe(2)
@@ -297,10 +304,10 @@ describe('DashboardService', () => {
         .mockResolvedValueOnce([
           {
             conta: {
-              id_conta: 'c1',
-              nome_conta: 'Nubank',
-              tipo: 'cartao',
-              cor_hex: '#000000',
+              Id_Conta: 'c1',
+              Nome_Conta: 'Nubank',
+              Tipo: 'cartao',
+              Cor_Hex: '#000000',
             },
             dataValues: {
               total: '750.50',
@@ -329,10 +336,10 @@ describe('DashboardService', () => {
         .mockResolvedValueOnce([
           {
             conta: {
-              id_conta: 'c1',
-              nome_conta: 'Inter',
-              tipo: 'conta',
-              cor_hex: '#FFFFFF',
+              Id_Conta: 'c1',
+              Nome_Conta: 'Inter',
+              Tipo: 'conta',
+              Cor_Hex: '#FFFFFF',
             },
             dataValues: {},
             total: '350',
@@ -360,10 +367,10 @@ describe('DashboardService', () => {
         .mockResolvedValueOnce([
           {
             conta: {
-              id_conta: 'c1',
-              nome_conta: 'Carteira',
-              tipo: 'dinheiro',
-              cor_hex: '#123456',
+              Id_Conta: 'c1',
+              Nome_Conta: 'Carteira',
+              Tipo: 'dinheiro',
+              Cor_Hex: '#123456',
             },
             dataValues: {},
           },
@@ -423,10 +430,10 @@ describe('DashboardService', () => {
         .mockResolvedValueOnce([
           {
             conta: {
-              id_conta: 'c1',
-              nome_conta: 'Nubank',
-              tipo: 'cartao',
-              cor_hex: '#000000',
+              Id_Conta: 'c1',
+              Nome_Conta: 'Nubank',
+              Tipo: 'cartao',
+              Cor_Hex: '#000000',
             },
             total: '1200',
             quantidade: '4',
