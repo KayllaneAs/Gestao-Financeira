@@ -1,85 +1,118 @@
-# 🚀 FinanceApp — Guia de Configuração do Ambiente
+# FinanceApp - Gestão de Sistema Financeira
 
-Este guia orienta toda a equipe (**Guilherme, Kayllane e Laura**) a clonar, configurar e rodar o ambiente local do FinanceApp de forma idêntica.
+Sistema web de gestão financeira pessoal desenvolvido com Next.js, PostgreSQL (Neon) e Sequelize.
+
+🔗 **Acesso online:** [https://gestao-financeira-topaz.vercel.app](https://gestao-financeira-topaz.vercel.app)
 
 ---
 
-## 1. Pré-requisitos
+## Tecnologias
+
+- **Frontend:** Next.js 16, React 19, Tailwind CSS, Recharts
+- **Backend:** Next.js API Routes, Sequelize ORM
+- **Banco de dados:** PostgreSQL (Neon serverless)
+- **Autenticação:** JWT + OTP via email (Nodemailer)
+- **Testes:** Jest
+
+---
+
+## Configuração do Ambiente
+
+### 1. Pré-requisitos
 
 - **Node.js** `v20.9.0` ou superior (recomendado: `v20.20.2` LTS)
 - **Git** instalado
 
-### Verificar versão do Node.js
+Verificar versão do Node.js:
 ```bash
 node -v
 ```
 
-### Atualizar com NVM se necessário
-```powershell
+Atualizar com NVM se necessário:
+```bash
 nvm install 20
 nvm use 20
 ```
 
+#### Windows
+Baixe o instalador `.msi` em [https://nodejs.org](https://nodejs.org) e siga o assistente de instalação.
+
+#### Linux (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install nodejs npm git
+```
+
+> ⚠️ Verifique se a versão instalada é 20+ com `node -v`. Se não for, use o NVM acima para atualizar.
+
 ---
 
-## 2. Clonar e instalar
+### 2. Clonar e instalar
 
 ```bash
-# Clonar o repositório
-git clone https://github.com/SEU_USUARIO/financeapp.git
-
-# Entrar na pasta
-cd financeapp
-
-# Instalar dependências
+git clone https://github.com/KayllaneAs/Gestao-Financeira.git
+cd Gestao-Financeira
 npm install
 ```
 
 ---
 
-## 3. Configurar variáveis de ambiente
+### 3. Configurar variáveis de ambiente
 
-Na raiz do projeto, crie um arquivo chamado exatamente `.env.local` com o seguinte conteúdo:
+Na raiz do projeto, crie um arquivo chamado exatamente `.env.local`:
 
 ```dotenv
-DATABASE_URL="sua_string_de_conexao_do_neon_aqui"
-JWT_SECRET="defina_um_segredo_aqui"
-```
+DATABASE_URL="postgresql://USUARIO:SENHA@HOST/DATABASE?sslmode=require"
+JWT_SECRET="seu_jwt_secret_aqui"
+JWT_EXPIRES_IN="7d"
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER="seu_email@gmail.com"
+EMAIL_PASS="sua_senha_de_app_aqui"
+EMAIL_FROM="FinanceApp <seu_email@gmail.com>"
 
-> **Como obter a `DATABASE_URL`:** acesse o painel do Neon → selecione o projeto FinanceApp → Connection string → copie a string completa.
+```
+**obs:** Os dados reais das credenciais estão no documento anexado no .zip (pdf)
+
+> **Windows:** crie o arquivo pelo editor de texto ou pelo VS Code na raiz do projeto.
 >
-> ⚠️ Nunca compartilhe o `.env.local` com ninguém nem suba ele para o GitHub. Confirme que `.env.local` está no `.gitignore` antes de fazer qualquer commit.
+> **Linux:** crie o arquivo via terminal com `nano .env.local`, cole o conteúdo, salve com `Ctrl+O` e saia com `Ctrl+X`.
+>
+> ⚠️ Nunca suba o `.env.local` para o GitHub. Confirme que ele está no `.gitignore`.
 
 ---
 
-## 4. Criar as tabelas no banco de dados
+### 4. Criar as tabelas no banco
 
 ```bash
 npx sequelize-cli db:migrate
 ```
 
-A saída esperada no terminal é:
-
-```
-== 02-create-usuario: migrated (0.Xs)
-== 03-create-conta-cartao: migrated (0.Xs)
-== 04-create-renda: migrated (0.Xs)
-== 05-create-parcelamento-agrupador: migrated (0.Xs)
-== 06-create-despesa: migrated (0.Xs)
-== 07-create-reserva: migrated (0.Xs)
-```
-
-Para confirmar que tudo foi criado corretamente, rode no SQL Editor do Neon:
-
+Para confirmar, rode no SQL Editor do Neon:
 ```sql
 SELECT * FROM "SequelizeMeta";
 ```
-
-Devem aparecer 8 linhas, uma para cada migration.
+Devem aparecer 6 linhas, uma para cada migration.
 
 ---
 
-## 5. Rodar o projeto
+### 5. Popular o banco com dados iniciais
+
+```bash
+npx sequelize-cli db:seed:all
+```
+
+Usuários criados:
+
+| Perfil | Email | Senha |
+|---|---|---|
+| Admin | laura@financeapp.com | Teste@123 |
+| Usuário comum | user@financeapp.com | Senha123 |
+
+---
+
+### 6. Rodar o projeto
 
 ```bash
 npm run dev
@@ -89,17 +122,31 @@ Acesse [http://localhost:3000](http://localhost:3000) no navegador.
 
 ---
 
+### 7. Executar os testes unitários
+
+```bash
+npx jest
+```
+
+---
+
 ## ⚠️ Problemas comuns
 
 **Erro de versão do Node.js**
 Rode `node -v` e confirme que está na v20+. Se não estiver, use o NVM para atualizar.
 
 **Erro nas migrations**
-Confirme que o arquivo `.env.local` existe na raiz do projeto e que a `DATABASE_URL` está correta. Sem esse arquivo, o Sequelize não consegue se conectar ao Neon.
+Confirme que o `.env.local` existe na raiz e que a `DATABASE_URL` está correta. Sem esse arquivo o Sequelize não consegue se conectar ao Neon.
 
 **Tabelas já existem no banco**
-Se o banco já tiver as tabelas de uma configuração anterior, rode antes:
 ```bash
 npx sequelize-cli db:migrate:undo:all
 npx sequelize-cli db:migrate
+npx sequelize-cli db:seed:all
 ```
+
+**Erro de conexão com o banco (ETIMEDOUT)**
+A rede universitária pode bloquear a porta 5432 do PostgreSQL. Use um hotspot de celular (4G/5G).
+
+**Erro de arquivo não encontrado nos controllers (Linux)**
+O Linux é case-sensitive. Confirme que todos os controllers estão com a primeira letra minúscula (ex: `despesaController.js`).
